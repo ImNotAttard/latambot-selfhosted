@@ -1,0 +1,30 @@
+﻿.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+*.sqlite
+*.log
+.pytest_cache/
+.claude/
+*.pem
+
+# Datos de produccion / secretos locales
+datos.json
+datos.json.bak_*
+datos.json.pre_restore_*
+datos.json.tmp
+ytdlp_cookies.json
+
+# Artefactos basura / leftovers
+/bool
+/str
+/ultimos
+/Dict\[str
+/Optional\[Dict]
+*.tar.gz
+.venv/
+dist/
+build/
+secrets/

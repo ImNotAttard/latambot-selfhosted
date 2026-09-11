@@ -1,0 +1,30 @@
+# Basura / artefactos locales
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.log
+venv/
+.venv/
+.git/
+.gitignore
+.pytest_cache/
+
+# Copias de seguridad locales creadas en runtime (no las queremos en la imagen)
+datos.json.bak_*
+datos.json.pre_restore_*
+datos.json.tmp
+datos.json
+latambot.sqlite3
+ytdlp_cookies.json
+
+# Web estática y nodos secundarios no usados por el contenedor del bot
+latambot_web/
+nebula-main/
+secondary_node/
+deploy/
+
+# Documentación de despliegue (no se necesita dentro de la imagen)
+DEPLOY_RAILWAY.md
+
+# La imagen empieza con una instalación vacía; el volumen se crea en runtime.

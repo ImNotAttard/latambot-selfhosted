@@ -1,0 +1,4 @@
+# LatamBOT self-hosted
+
+This installation is self-hosted. The bot URL, dashboard URL, OAuth application and optional
+integrations are configured through environment variables.
