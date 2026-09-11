@@ -29,6 +29,24 @@ El panel queda disponible en `http://127.0.0.1:8080`. La configuración se guard
 - Integraciones externas opcionales: IA, búsquedas, imágenes, almacenamiento R2, webhooks y nodo
   de descargas.
 
+## Cómo funciona
+
+La instalación se ejecuta como un único proceso: el bot mantiene la conexión con Discord y el
+servidor web expone el dashboard y `/api/health`. Los datos de configuración y estado se guardan
+en `DATA_DIR`; en Docker, el volumen `latambot_data` se monta en `/data`. Las credenciales se
+leen desde variables de entorno y no se escriben intencionalmente dentro del repositorio.
+
+El flujo recomendado es:
+
+1. Crear una aplicación y un bot propios en Discord.
+2. Configurar el token, el directorio persistente y, si hace falta, OAuth2.
+3. Probar el bot en un servidor privado.
+4. Activar únicamente las integraciones externas que realmente uses.
+5. Hacer backups antes de actualizar o cambiar de host.
+
+La instancia self-hosted es independiente: sus límites, costos de APIs, moderación, disponibilidad
+y cumplimiento de las políticas de Discord dependen de su operador.
+
 ## Requisitos previos
 
 Necesitás una aplicación creada en el [Discord Developer Portal](https://discord.com/developers/applications),
@@ -50,6 +68,16 @@ Groq, OpenRouter, SerpAPI, TMDB, TheCatAPI, R2, webhooks y el nodo de descargas 
 Sin sus variables, las funciones dependientes muestran un error explicativo y el resto del bot
 continúa funcionando. Revisá `.env.example` para conocer todas las variables disponibles y nunca
 uses credenciales de producción en desarrollo.
+
+## Configuración mínima y configuración de producción
+
+Para una prueba local solo se necesita `DISCORD_TOKEN`. Para producción se recomienda definir
+también `DATA_DIR`, `DASHBOARD_BASE_URL`, `DASHBOARD_SESSION_SECRET` y las variables OAuth si se
+va a usar el panel. Las claves de IA, búsqueda, almacenamiento, webhooks y el nodo de descargas
+son independientes; dejar una vacía desactiva solamente la función que depende de ella.
+
+No copies el `.env` de otra instalación. Generá secretos nuevos, restringí el acceso al archivo y
+rotalos si aparecen en un log, captura de pantalla, backup o commit.
 
 ## Otras instalaciones
 
@@ -89,6 +117,24 @@ el Compose. Probá periódicamente la restauración; un backup que nunca se prue
 3. Ejecutá `docker compose up -d --build`.
 4. Comprobá `/api/health`, los logs y el estado del bot en Discord.
 5. Conservá la versión anterior hasta confirmar que la instalación funciona.
+
+## Lista de comprobación antes de exponerlo a Internet
+
+- `DASHBOARD_BASE_URL` usa HTTPS y coincide exactamente con el callback registrado en Discord.
+- El puerto de desarrollo no está publicado directamente sin proxy.
+- `DASHBOARD_SESSION_SECRET` es aleatorio y tiene al menos 32 caracteres.
+- El bot no tiene `Administrator` si no lo necesita.
+- El volumen y los backups están protegidos por permisos del sistema.
+- Hay una política de rotación de tokens y una prueba de restauración.
+- Las funciones que dependen de APIs externas tienen límites y costos revisados.
+
+## Limitaciones conocidas
+
+La compatibilidad de funciones multimedia depende de `ffmpeg`, `yt-dlp`, la arquitectura y los
+proveedores externos. Raspberry Pi funciona mejor en 64 bits, pero no todas las herramientas
+externas ofrecen el mismo soporte en ARM. Railway y otros hosts administrados pueden reiniciar,
+dormir o limitar servicios según el plan. Probá las funciones que necesitás en tu hardware antes
+de migrar una instalación completa.
 
 ## Estado del proyecto
 

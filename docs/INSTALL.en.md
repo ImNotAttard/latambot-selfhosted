@@ -3,6 +3,16 @@
 This guide deploys an independent instance. It does not connect to official infrastructure or
 import data from another installation.
 
+## Architecture and directories
+
+The container runs the bot and dashboard in one process. `DATA_DIR` contains persistent data; in
+Compose, the `latambot_data` volume is mounted at `/data`. Treat application source as immutable
+while the service is running and keep secrets outside the repository.
+
+Before installing, decide who operates the host, where backups will be stored, and which external
+integrations are allowed. A minimal installation can run with Discord alone; every additional
+provider adds its own limits, costs, terms, and risk.
+
 ## 1. Create the Discord bot
 
 1. Open the Discord Developer Portal and create a **New Application**.
@@ -22,6 +32,9 @@ persistent `DATA_DIR`. Dashboard OAuth also requires `DISCORD_CLIENT_ID`,
 32 characters. Register `DASHBOARD_BASE_URL/auth/callback` in Discord. AI, image, search, R2,
 webhook, and download-node integrations are optional.
 
+Generate separate secrets for each environment. Never reuse another installation's token or paste
+credentials into issues, logs, screenshots, or versioned configuration.
+
 ## Docker Compose
 
 ```bash
@@ -35,6 +48,16 @@ curl --fail http://127.0.0.1:8080/api/health
 The dashboard binds locally to `127.0.0.1:8080`. Put an HTTPS reverse proxy in front of it before
 public exposure and update `DASHBOARD_BASE_URL`; do not expose the development port directly.
 
+For a first-run check:
+
+```bash
+docker compose logs --tail=100 latambot
+curl --fail http://127.0.0.1:8080/api/health
+```
+
+The process should maintain an active Discord connection, and the health endpoint must not expose
+tokens or other secrets.
+
 For upgrades, back up the `latambot_data` volume first, then run `docker compose up -d --build`.
 Never run `docker compose down -v` unless you intend to delete the data.
 
@@ -45,6 +68,9 @@ environment, install `requirements.txt`, configure `.env`, set `DATA_DIR`, and r
 `python latambot.py`. Use systemd or another supervisor for production deployments. Keep the
 environment file outside the repository and make sure the service user can write to `DATA_DIR`
 but not the application source tree.
+
+Before creating a systemd unit, run the process manually as the service user. Use absolute paths,
+a fixed `WorkingDirectory`, and an environment file with mode `600`.
 
 ## Raspberry Pi
 
@@ -71,6 +97,8 @@ docker run --rm -v latambot_data:/data -v "$PWD/backups:/backups" \
 ```
 
 Test restoration before relying on a backup. Never delete the volume during routine upgrades.
+Keep multiple backup generations and encrypt archives if they contain user data. A valid backup
+should include persistent application data, never tokens or private keys.
 
 ## Troubleshooting
 
@@ -80,6 +108,8 @@ Test restoration before relying on a backup. Never delete the volume during rout
 - **Dashboard login failure:** check the OAuth callback, public URL, cookies, and session secret.
 - **Media failures:** install `ffmpeg`, verify architecture, and configure optional APIs.
 - **Lost data:** do not use `down -v`; restore the volume from a backup.
+- **Repeated restarts:** inspect `docker compose ps`, exit codes, memory, and disk space instead of
+  hiding the problem with an unlimited restart loop.
 
 ## Security and maintenance
 
@@ -89,3 +119,4 @@ Test restoration before relying on a backup. Never delete the volume during rout
 - Register the exact OAuth redirect URI before enabling dashboard OAuth.
 - Review bot permissions and keep dependencies updated.
 - Rotate leaked tokens immediately and follow Discord terms and third-party service licenses.
+- Test restoration and secret rotation before you need either procedure.

@@ -3,6 +3,17 @@
 Esta guía instala una instancia independiente. No conecta con la infraestructura oficial ni
 importa datos de otra instalación.
 
+## Arquitectura y directorios
+
+El contenedor ejecuta el bot y el dashboard en el mismo proceso. `DATA_DIR` contiene los datos
+persistentes; en Compose se monta el volumen `latambot_data` en `/data`. El código de la
+aplicación debe tratarse como inmutable durante la operación y los secretos deben vivir fuera del
+repositorio.
+
+Antes de instalar, decidí quién administrará el host, dónde se guardarán los backups y qué
+integraciones externas están permitidas. Una instalación mínima puede funcionar solo con Discord;
+cada proveedor adicional agrega sus propios límites, costos, términos y riesgos.
+
 ## 1. Crear el bot en Discord
 
 1. Entrá al Discord Developer Portal y creá una **New Application**.
@@ -29,6 +40,9 @@ panel OAuth definí también `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`,
 Registrá `DASHBOARD_BASE_URL/auth/callback` como redirect URI en Discord. Las APIs de IA,
 imágenes, búsqueda, R2 y webhooks son opcionales.
 
+Generá secretos propios para cada ambiente. No reutilices el token de otra instancia ni pegues
+credenciales en issues, logs, capturas o archivos de configuración versionados.
+
 ## Docker Compose
 
 ```bash
@@ -39,6 +53,16 @@ curl http://127.0.0.1:8080/api/health
 
 El panel queda local en `127.0.0.1:8080`. Para exponerlo, usá un proxy HTTPS y cambiá
 `DASHBOARD_BASE_URL`; no expongas directamente el puerto de desarrollo a Internet.
+
+Para una primera prueba, abrí otro terminal y comprobá:
+
+```bash
+docker compose logs --tail=100 latambot
+curl --fail http://127.0.0.1:8080/api/health
+```
+
+El proceso debe mantener una conexión activa con Discord y el endpoint de health debe responder
+sin publicar tokens ni secretos.
 
 Logs y diagnóstico:
 
@@ -74,6 +98,9 @@ Para producción, ejecutá el proceso con un supervisor como systemd, almacená 
 repositorio con permisos restringidos y configurá reinicio automático. Asegurate de que el usuario
 del servicio pueda escribir en `DATA_DIR`, pero no en el código de la aplicación.
 
+Antes de usar systemd, verificá manualmente el arranque con el mismo usuario del servicio. Usá
+rutas absolutas, un `WorkingDirectory` fijo y un archivo de entorno con permisos `600`.
+
 ## Raspberry Pi
 
 Usá una Raspberry Pi de 64 bits, almacenamiento persistente, refrigeración y una fuente estable.
@@ -101,6 +128,10 @@ docker run --rm -v latambot_data:/data -v "$PWD/backups:/backups" \
 Guardá el backup fuera del host. Para restaurar, detené el bot, extraé el archivo sobre el volumen
 y reiniciá. Verificá que la restauración funciona antes de depender de ella.
 
+Conservá varias generaciones de backups y cifralas si contienen datos de usuarios. Un backup
+válido debe incluir la configuración persistente, pero nunca debe convertirse en una forma de
+distribuir tokens o claves privadas.
+
 ## Troubleshooting
 
 - **Token inválido:** regeneralo en Discord y actualizá solo el secreto de la instalación.
@@ -110,6 +141,8 @@ y reiniciá. Verificá que la restauración funciona antes de depender de ella.
 - **Panel sin login:** verificá callback OAuth, URL pública, cookies seguras y secret de sesión.
 - **Música/descargas fallan:** instalá `ffmpeg`, revisá arquitectura y las APIs opcionales.
 - **Datos perdidos:** no uses `down -v`; restaurá el volumen desde un backup.
+- **Reinicios repetidos:** revisá `docker compose ps`, el código de salida y la memoria/disco del
+  host; no ocultes el problema con un bucle de reinicios.
 
 ## Seguridad y mantenimiento
 
@@ -118,3 +151,4 @@ y reiniciá. Verificá que la restauración funciona antes de depender de ella.
 - Limitá permisos del bot y del usuario Linux.
 - Actualizá dependencias y revisá cambios antes de desplegar.
 - Cumplí los términos de Discord, las licencias de servicios externos y la legislación aplicable.
+- Probá la restauración y el procedimiento de rotación antes de necesitarlos.
